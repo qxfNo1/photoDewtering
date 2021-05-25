@@ -1,0 +1,61 @@
+<html lang="zh-CN">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>图片裁剪</title>
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/imgUpload.css" rel="stylesheet">
+</head>
+
+<body class="container" style="background-color: #C0C0C0;">
+    <div class="row-fluid">
+        <input type="file" class="btn btn-default" />
+        <div class="row-fluid col-sm-12 col-md-12 item" id="canvasDivId">
+            <canvas id="myCanvas" width="400" height="550" class="img-responsive"
+                style="border:1px solid #d3d3d3;display:none;">
+            你的浏览器不支持HTML5. </canvas>
+        </div>
+        <div class="row-fluid col-sm-12 col-md-12">
+            <canvas id="myCanvasTow" width="320" height="400" class="img-responsive"
+                style="border:1px solid #d3d3d3;display:none;">
+            你的浏览器不支持HTML5. </canvas>
+        </div>
+        <div class="row-fluid col-sm-12 col-md-12" id="anniuDiv"
+            style="display:none;">
+                <button type="button" class="btn btn-success" id="affirmId">确认</button>
+                <!--<img alt="逆时针旋转" title="逆时针旋转" style="width: 30px;height: 30px;" id="rotateLeft" src="imageUpload/left.png">-->
+                <img alt="顺时针旋转" title="顺时针旋转" style="width: 30px;height: 30px;" id="rotateRight" src="imageUpload/right.png">
+                <img alt="缩小" title="缩小" style="width: 30px;height: 30px;" id="scale" src="imageUpload/rrrr.png">
+                <img alt="放大" title="放大" style="width: 30px;height: 30px;" id="little" src="imageUpload/pppp.png">
+                <button type="button" class="btn btn-primary" id="buttonId">预览</button>
+                <button type="button" class="btn btn-danger" style="display: none;" id="resetId">重置</button>
+        </div>
+        <div class="row-fluid col-sm-12 col-md-12">
+            <img id="cutImgId" class="img-responsive" src=""
+                style="width: 320px;height: 400px;display:none;">
+        </div>
+    </div>
+    <script type="text/javascript" src="js/jquery-3.4.1.js"></script>
+    <script src="js/bootstrap.js"></script>
+    <script type="text/javascript" src="js/img.js"></script>
+    <script type="text/javascript" src="js/lrz.pc.min.js"></script>
+    <script type="text/javascript" src="js/lrz.mobile.min.js"></script>
+    <script type="text/javascript">
+        var ics = new imgStroke();
+        $('input[type=file]').change(function(){
+            var file=this.files[0];
+            var reader=new FileReader();
+            reader.onload=function(){
+                // 通过 reader.result 来访问生成的 DataURL
+                var url=reader.result;
+                ics.init({"canvasId":"myCanvas","url":url,"x":20,"y":20});
+                demo_report();
+            };
+            reader.readAsDataURL(file);
+        });
+    </script>
+</body>
+</html>

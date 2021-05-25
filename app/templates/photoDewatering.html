@@ -1,0 +1,484 @@
+{% extends 'base.html' %}   {# 将当前页面继承至base.html母版 #}
+{% block content %}
+<!-- 中部区域布局 -->
+        <div class="col-12" id="left" style="padding: 0px;">
+            <div class="col-12 row choose">
+                 {% if is_alert %}
+                    <script type="text/javascript">
+                            alert("upload .jpg, .jpeg, .bmp, .png")
+                    </script>
+                 {% endif %}
+
+                    <style>
+                        #wrapper{
+                            position:relative;
+                            width:{{image_width}};
+                            height:{{image_height}};
+                        }
+                        #myCanvas{
+                            position:absolute; top:200px; left:0px;
+                            width:{{image_width}};
+                            height:{{image_height}};
+                            opacity: 0.5;
+                        }
+               </style>
+                <div class="col-12 title" style="text-align: center;color: #000000;">
+                     <label style="font-size: 40px"><span class="oi oi-puzzle-piece" aria-hidden="true" style="padding: 6px"></span>图片去水印</label>
+                </div>
+
+                <div class="col-6 content" style="margin-top: 80px">
+                          <h2>上传图片</h2>
+                                    <form action="" method=post enctype=multipart/form-data>
+                                      <p><input type=file name=file>
+                                         <input type=submit value=上传 class="btn btn-primary">
+                                    </form>
+
+                                <h2> 选择笔刷大小</h2>
+                                Line width : <select id="selWidth">
+                                    <option value="1">1</option>
+                                    <option value="5">5</option>
+                                    <option value="9">9</option>
+                                    <option value="13">13</option>
+                                    <option value="17" selected="selected">17</option>
+                                    <option value="21">21</option>
+                                    <option value="42">42</option>
+                                    <option value="84">84</option>
+                                </select>
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                Option<select id="selColor">
+                                    <option value="blue" selected="selected">移除</option>
+                                </select>
+
+                                <br><br><br>
+                                <h2> 在图片上涂抹水印所在位置，然后点击提交</h2>
+                                <br>
+                                <form method="post" action="" onsubmit="sendMask();" enctype=multipart/form-data>
+                                  <input id="inp_msk" name="mask" type="hidden" value="">
+                                  <input id="inp_img" name="imgname" type="hidden" value="{{image_name}}">
+                                  <input id="bt_upload" type="submit" value="提交" class="btn btn-primary">
+                                </form>
+                                <br>
+                                <button class="btn btn-primary" onclick="javascript:clearArea();return false;">清除</button>
+                                <div><br></div>
+                </div>
+
+                <div class="col-6 content" style="margin-bottom: 10px">
+                        {% if mask_name %}
+                                <h1 id="image_title">
+                                    <input type="radio" name="select_model" value="input_image" onclick="canvas_show_input()" style=""/><font id="image_title_label">去水印前</font>&nbsp&nbsp
+                                    <input type="radio" name="select_model" value="result_image" checked="checked" onclick="canvas_show_result()" /><font id="result_label">去水印后</font>&nbsp&nbsp
+                                 </h1>
+                                <style>
+                                    #canvasBottom{
+                                        position:absolute; top:0px; left:0px;
+                                        width:{{image_width}};
+                                        height:{{image_height}};
+                                        background: url('/results/result_{{mask_name}}')
+                                    }
+                                </style>
+
+                                <div id="wrapper" style="margin-top: 40px;margin-left: 20px">
+                                    <canvas id="canvasBottom" width={{image_width}} height={{image_height}}></canvas>
+                                    <canvas id="myCanvas" width={{image_width}} height={{image_height}}></canvas>
+                                </div>
+
+                            <!--
+                                <canvas id="myCanvas" width="{{image_width}}" height="{{image_height}}" style="border:2px solid black;background: url('/static/results/result_{{mask_name}}')">
+                            </canvas>
+                            -->
+                        {% else %}
+                                <style>
+                                    #canvasBottom{
+                                        position:absolute; top:0px; left:0px;
+                                        width:{{image_width}};
+                                        height:{{image_height}};
+                                        background: url('/images/{{image_name}}')
+                                    }
+                                </style>
+
+                                <div id="wrapper" style="margin-top: 40px;margin-left: 20px">
+                                    <canvas id="canvasBottom" width={{image_width}} height={{image_height}}"></canvas>
+                                    <canvas id="myCanvas" width={{image_width}} height={{image_height}}></canvas>
+                                </div>
+
+
+                        {% endif %}
+                </div>
+
+
+
+
+                <!-- 文章评论 -->
+                 <div class="col-12 article-comment">
+                <div class="col-12 row">
+                   {% include 'comment.html' %}
+
+
+
+
+            </div>
+        </div>
+
+
+            </div>
+        </div>
+
+
+                 <script>
+                    function canvas_show_input() {
+                        var mycanvas = document.getElementById("myCanvas");
+                        mycanvas.style.backgroundImage = "url('/images/{{image_name0}}')"
+                        document.getElementById("inp_img").value = "{{image_name0}}";
+                        document.getElementById("image_title_label").color = "blue";
+                        document.getElementById("result_label").color = "black";
+                    }
+                    function canvas_show_result() {
+                        var mycanvas = document.getElementById("myCanvas");
+                        mycanvas.style.backgroundImage = "url('/results/result_{{mask_name}}')"
+                        document.getElementById("inp_img").value = "result_{{mask_name}}";
+                        document.getElementById("image_title_label").color = "black";
+                        document.getElementById("result_label").color = "blue";
+                    }
+                 </script>
+                <script type="text/javascript">
+                        // send mask to server
+                            function sendMask() {
+                               var canvas = document.getElementById('myCanvas');
+                               document.getElementById('inp_msk').value = canvas.toDataURL();
+                            }
+                            // draw on canvas
+                            var mousePressed = false;
+                            var lastX, lastY;
+                            var ctx;
+
+                            function InitThis() {
+                                canvas = document.getElementById("myCanvas");
+                                ctx = canvas.getContext("2d");
+
+                                $('#myCanvas').mousedown(function (e) {
+                                    mousePressed = true;
+                                    Draw(e.pageX - $(this).offset().left, e.pageY - $(this).offset().top, false);
+                                });
+
+                                $('#myCanvas').mousemove(function (e) {
+                                    if (mousePressed) {
+                                        Draw(e.pageX - $(this).offset().left, e.pageY - $(this).offset().top, true);
+                                    }
+                                });
+
+                                $('#myCanvas').mouseup(function (e) {
+                                    mousePressed = false;
+                                });
+                                $('#myCanvas').mouseleave(function (e) {
+                                mousePressed = false;
+                                });
+
+                                // touch
+                                // Set up touch events for mobile, etc
+                                canvas.addEventListener("touchstart", function (e) {
+                                  e.preventDefault();
+                                  var touch = e.touches[0];
+                                  var mouseEvent = new MouseEvent("mousedown", {
+                                    clientX: touch.clientX,
+                                    clientY: touch.clientY
+                                  });
+                                  canvas.dispatchEvent(mouseEvent);
+                                }, false);
+                                canvas.addEventListener("touchend", function (e) {
+                                  e.preventDefault();
+                                  var mouseEvent = new MouseEvent("mouseup", {});
+                                  canvas.dispatchEvent(mouseEvent);
+                                }, false);
+                                canvas.addEventListener("touchmove", function (e) {
+                                  e.preventDefault();
+                                  var touch = e.touches[0];
+                                  var mouseEvent = new MouseEvent("mousemove", {
+                                    clientX: touch.clientX,
+                                    clientY: touch.clientY
+                                  });
+                                  canvas.dispatchEvent(mouseEvent);
+                                }, false);
+                            }
+
+                            function Draw(x, y, isDown) {
+                                if (isDown) {
+                                    ctx.beginPath();
+                                    ctx.strokeStyle = $('#selColor').val();
+                                    ctx.lineWidth = $('#selWidth').val();
+                                    ctx.lineJoin = "round";
+                                    ctx.moveTo(lastX, lastY);
+                                    ctx.lineTo(x, y);
+                                    ctx.closePath();
+                                    ctx.stroke();
+                                }
+                                lastX = x; lastY = y;
+                            }
+
+                            function clearArea() {
+                                // Use the identity matrix while clearing the canvas
+                                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                            }
+
+                            function showOriginal() {
+                                var element = document.getElementById("image_title");
+                                element.innerHTML = "input image"
+                                var mycanvas = document.getElementById("myCanvas");
+                                mycanvas.style.backgroundImage = "url('/images/{{image_name0}}')"
+                                document.getElementById("inp_img").value = "{{image_name0}}";
+                                document.getElementById("undo_button").style.display = 'none';
+                            }
+                        </script>
+                        <script type="text/javascript">
+                            InitThis();
+                        </script>
+
+
+    <script>
+
+
+    function addComment(method) {
+        var content = $.trim($("#comment").val());
+        if (content.length < 5|| content.length > 1000) {
+            bootbox.alert({title:"错误提示",message:"评论内容在5-1000字之间。"});
+            return false;
+        }
+
+        var param = 'method=' + method +'&content='+content;
+        $.post('/comment',param,function(data){
+            if(data=='content-invalid'){
+                bootbox.alert({title:"错误提示",message:"评论内容在5-1000字之间。"});
+            }
+            else if(data=='add-limit'){
+                bootbox.alert({title:"错误提示",message:"你当天已经用完了5条评论的限额"});
+            }
+             else if(data=='add-pass'){
+                bootbox.alert({title:"信息提示",message:"发表评论成功"});
+                location.reload();
+
+            }
+            else {
+                bootbox.alert({title:"错误提示",message:"发表评论出错，请联系管理员"});
+            }
+        })
+    }
+
+
+
+    var COMMENTID = 0;
+
+
+    function gotoReply(commentid) {
+        $("#replyBtn").show();
+        $("#submitBtn").hide();
+        $("#nickname").val("请在此回复编号为" + commentid+"的评论");
+        $("#comment").focus();
+        COMMENTID= commentid;
+    }
+
+     function replyComment(method) {
+        var content = $.trim($("#comment").val());
+        if (content.length < 5 || content.length > 1000){
+            bootbox.alert({title:"错误提示",message:"发评论内容在5-1000字之间。"});
+           return false;
+        }
+
+        var param = 'method=' + method;
+        param +='&content=' + content;
+        param +='&commentid=' + COMMENTID;
+        $.post('/reply',param,function(data){
+            if(data=='content-invalid'){
+                bootbox.alert({title:"错误提示",message:"评论内容在5-1000字之间。"});
+            }
+            else if(data=='reply-limit'){
+                bootbox.alert({title:"错误提示",message:"你当天已经用完了5条评论的限额"});
+            }
+             else if(data=='reply-pass'){
+                bootbox.alert({title:"信息提示",message:"发表评论成功"});
+                location.reload();
+            }
+            else if (data=='not-login'){
+                 bootbox.alert({title:"信息提示",message:"你还没有登录，不能发表评论。"});
+
+            }
+            else {
+                bootbox.alert({title:"错误提示",message:"发表评论出错，请联系管理员"});
+
+            }
+        })
+    }
+
+     var PAGE = 1;   // 定义全局变量用于记录前面在哪一页，默认在第1页
+    var TOTAL = 1;  // 定义总页数，由模板引擎先引填充
+
+    // 添加gotoPage函数对应的代码
+    function gotoPage(method, type) {
+        // 如果当前面是第1页，则上一页还是第1页
+        if (type == 'prev') {
+            if (PAGE > 1)
+                PAGE -= 1;
+        }
+        // 如果当前页是是后一页，则下一页还是最后一页
+        else if (type == 'next') {
+            if (PAGE < TOTAL)
+                PAGE += 1;
+        }
+        else {
+            PAGE = parseInt(type);
+        }
+        fillComment(method, PAGE);
+    }
+
+    // 填充分页评论数据，注意其中的DOM元素的拼接操作
+    function fillComment(method, pageid) {
+        $("#commentDiv").empty();   // 先清空现有评论区内容
+        var content = '';           // 用于拼接评论区元素与内容
+        $.get('/comment/' + method + '-' + pageid, function (data) {
+        var comment = data;
+        for (var i in comment) {
+            content += '<div class="col-12 list row">';
+            content += '<div class="col-2 icon">';
+            content += '<img src="/avatar/' + comment[i]['avatar'] + '" class="img-fluid" style="width: 70px;"/>';
+            content += '</div>';
+            content += '<div class="col-10 comment">';
+            content += '<div class="col-12 row" style="padding: 0px;">';
+            content += '<div class="col-sm-6 col-12 commenter">';
+            content += comment[i]['nickname'];
+            content += '&nbsp;&nbsp;&nbsp;' + comment[i]['createtime'];
+            content += '</div>';
+            content += '<div class="col-sm-6 col-12 reply">';
+            <!-- 文章作者、管理员和评论者只能回复和隐藏，不能点赞-->
+            <!-- 此处的判断内容由模板引擎先行填充，字符串的比较在外面加 "" -->
+            if ("2" == "" ||
+                "" == "admin" ||
+                comment[i]['userid']+"" == "") {
+                content += '<label onclick="gotoReply(' + comment[i]['commentid'] + ')">';
+                content += '<span class="oi oi-arrow-circle-right" aria-hidden="true"></span>';
+                content += '回复</label>&nbsp;&nbsp;&nbsp;';
+                content += '<label onclick="hideComment(this, ' + comment[i]['commentid'] + ')">';
+                content += '<span class="oi oi-delete" aria-hidden="true"></span>隐藏</label>';
+            }
+            else {
+                <!-- 其他用户只能回复和点赞，不能隐藏 -->
+                content += '<label onclick="gotoReply(' + comment[i]['commentid'] + ')">';
+                content += '<span class="oi oi-arrow-circle-right" aria-hidden="true"></span>回复';
+                content += '</label>&nbsp;&nbsp;';
+                content += '<label onclick="agreeComment(this, ' + comment[i]['commentid'] + ')">';
+                content += '<span class="oi oi-chevron-bottom" aria-hidden="true"></span>赞成(<span>' + comment[i]['agreecount'] + '</span>)';
+                content += '</label>&nbsp;&nbsp;';
+                content += '<label onclick="opposeComment(this, ' + comment[i]['commentid'] + ')">';
+                content += '<span class="oi oi-x" aria-hidden="true"></span>反对(<span>' + comment[i]['opposecount'] + '</span>)';
+                content += '</label>';
+            }
+            content += '</div>';
+            content += '</div>';
+            content += '<div class="col-12 content">';
+            content += comment[i]['content'];     <!-- 填充原始评论内容 -->
+            content += '</div>';
+            content += '</div>';
+            content += '</div>';
+
+            <!-- 在当前评论下方填充回复评论,如果当前评论有回复才填充 -->
+            if (comment[i]['reply_list'].length > 0) {
+            var reply = comment[i]['reply_list'];
+            for (var j in reply) {
+                content += '<div class="col-12 list row">';
+                content += '<div class="col-2 icon">';
+                content += '<img src="/avatar/' + reply[j]['avatar'] + '" class="img-fluid" style="width: 45px;"/>';
+                content += '</div>';
+                content += '<div class="col-10 comment" style="border: solid 1px #ccc;">';
+                content += '<div class="col-12 row" style="color: #337AB7;">';
+                content += '<div class="col-sm-7 col-12 commenter" style="color: #337AB7;">';
+                content += reply[j]['nickname'];
+                content += ' 回复 ';
+                content += comment[i]['nickname'];
+                content += '&nbsp;&nbsp;&nbsp;';
+                content += reply[j]['createtime'];
+                content += '</div>';
+                content += '<div class="col-sm-5 col-12 reply">';
+                <!-- 回复的评论不能继续回复，但是可以隐藏和点赞 -->
+                if ("2" == "" ||
+                    "" == "admin" ||
+                    reply[j]['userid']+"" == "") {
+                    content += '<label onclick="hideComment(this, ' + reply[j]['commentid'] + ')">';
+                    content += '<span class="oi oi-delete" aria-hidden="true"></span>隐藏';
+                    content += '</label>&nbsp;&nbsp;';
+                }
+                content += '<label onclick="agreeComment(this, ' + reply[j]['commentid'] + ')">';
+                content += '<span class="oi oi-chevron-bottom" aria-hidden="true"></span>赞成(<span>' + reply[j]['agreecount'] + '</span>)';
+                content += '</label>&nbsp;&nbsp;';
+                content += '<label onclick="opposeComment(this, ' + reply[j]['commentid'] + ')">';
+                content += '<span class="oi oi-x" aria-hidden="true"></span>反对(<span>' + reply[j]['opposecount'] + '</span>)';
+                content += '</label>';
+                content += '</div>';
+                content += '</div>';
+                content += '<div class="col-12">';
+                content += '回复内容：' + reply[j]['content'];
+                content += '</div>';
+                content += '</div>';
+                content += '</div>';
+            }
+            }
+        }
+        $("#commentDiv").html(content);    // 填充到评论区域
+        });
+    }
+
+
+     function agreeComment(obj, commentid) {
+        param = "type=1&commentid=" + commentid;
+        $.post('/opinion', param, function (data) {
+            // 赞成成功后，将赞成数量+1并填充到页面中
+            if (data == 'opinion-pass') {
+                // 获取到当前元素下的第2个span标签元素
+                var element = $(obj).children('span').eq(1);
+                // 获取到赞成数量，并将其转换为整数
+                var count = parseInt(element.text());
+                element.text(count+1);
+            }
+        })
+    }
+
+    function opposeComment(obj, commentid) {
+        param = "type=0&commentid=" + commentid;
+        $.post('/opinion', param, function (data) {
+            // 反对成功后，将反对数量-1并填充到页面中
+            if (data == 'opinion-pass') {
+                // 获取到当前元素下的第2个span标签元素
+                var element = $(obj).children('span').eq(1);
+                // 获取到赞成数量，并将其转换为整数
+                var count = parseInt(element.text());
+                element.text(count+1);
+            }
+        })
+    }
+
+    // 隐藏评论请求
+    function hideComment(obj, commentid) {
+        bootbox.confirm("你确定要隐藏这条评论吗？", function(result) {
+            if (result) {
+                $.ajax({
+                    url: '/comment/' + commentid,
+                    type: 'delete',    // 发送delete请求
+                    success: function (data) {
+                        if (data == 'hide-pass') {
+                            // 通过父类选择器找到当前评论的顶层元素，并隐藏该元素
+                            $(obj).parent().parent().parent().parent().hide();
+                        } else if (data == 'hide-limit') {
+                            bootbox.alert({title: "错误提示",
+                                message: "带回复的评论无法隐藏."});
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    window.onload = function(){
+        fillComment('{{method}}','1');
+    }
+</script>
+
+
+{% endblock %}
+

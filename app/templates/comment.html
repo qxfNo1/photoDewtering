@@ -1,0 +1,42 @@
+            <div class="col-2">
+                        <label for="nickname">你的昵称：</label>
+                    </div>
+                    <div class="col-10">
+                        {% if session.get('islogin') == 'True' %}
+                        <input type="text" id="nickname" class="form-control" value="{{session.get('nickname')}}" readonly />
+                        {% else %}
+                        <input type="text" id="nickname" class="form-control" value="你还未登录，双击此处可登录。" onclick="showLogin()" readonly />
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-12 row">
+                    <div class="col-2">
+                        <label for="comment">你的评论：</label>
+                    </div>
+                    <div class="col-10">
+                        <textarea class="form-control" style="height: 100px" id="comment"></textarea>
+                    </div>
+                </div>
+                <div class="col-12 row">
+                    <div class="col-12" style="text-align: right">
+                        {% if session.get('islogin') == 'True' %}
+                        <button class="btn btn-primary" onclick="addComment('{{method}}')" id="submitBtn">发表评论</button>
+                        <button type="button" class="btn btn-primary" onclick="replyComment('{{method}}')" style="display:none;" id="replyBtn">回复评论</button>
+                        {% else %}
+                        <button class="btn btn-primary" onclick="showLogin()">点此登录</button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div id="commentDiv"></div>
+
+
+                {% if total > 1 %}
+                <div class="col-12 paginate">
+                <label onclick="gotoPage('{{method}}','prev')">上一页</label>
+                {% for i in range(total) %}
+                 <label onclick="gotoPage('{{method}}','{{i+1}}')">{{i+1}}</label>
+                {% endfor %}
+                 <label onclick="gotoPage('{{method}}','next')">下一页</label>
+                </div>
+                {% endif %}
